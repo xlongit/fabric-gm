@@ -18,6 +18,7 @@ limitations under the License.
 package factory
 
 import (
+	"fmt"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/pkcs11"
 	"github.com/pkg/errors"
@@ -50,7 +51,9 @@ func setFactories(config *FactoryOpts) error {
 	}
 
 	if config.ProviderName == "" {
-		config.ProviderName = "SW"
+		//config.ProviderName = "SW"
+		// Support GM by default
+		config.ProviderName = "GM"
 	}
 
 	if config.SwOpts == nil {
@@ -62,7 +65,14 @@ func setFactories(config *FactoryOpts) error {
 
 	// Software-Based BCCSP
 	if config.SwOpts != nil {
-		f := &SWFactory{}
+		// Add GMSM support
+		var f BCCSPFactory
+		if config.ProviderName == "GM"{
+			f = &GMFactory{}
+		}else{
+			f = &SWFactory{}
+		}
+		
 		err := initBCCSP(f, config)
 		if err != nil {
 			factoriesInitError = errors.Wrap(err, "Failed initializing SW.BCCSP")
@@ -99,9 +109,13 @@ func setFactories(config *FactoryOpts) error {
 // GetBCCSPFromOpts returns a BCCSP created according to the options passed in input.
 func GetBCCSPFromOpts(config *FactoryOpts) (bccsp.BCCSP, error) {
 	var f BCCSPFactory
+	fmt.Println(fmt.Sprintf("The ProviderName is %s", config.ProviderName))
 	switch config.ProviderName {
 	case "SW":
 		f = &SWFactory{}
+	// Add GMSM support
+	case "GM":
+		f = &GMFactory{}
 	case "PKCS11":
 		f = &PKCS11Factory{}
 	case "PLUGIN":

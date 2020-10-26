@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"github.com/hyperledger/fabric/bccsp"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 type ecdsaKeyGenerator struct {
@@ -64,4 +65,33 @@ func (kg *rsaKeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (bccsp.Key, error) {
 	}
 
 	return &rsaPrivateKey{lowLevelKey}, nil
+}
+
+// Add GMSM support
+// Define GMSM2 keygen struct and implement KeyGenerator interface
+type gmsm2KeyGenerator struct{
+}
+
+func (gm *gmsm2KeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (k bccsp.Key, err error){
+	// Invoke sm2 certification register method
+	privKey, err := sm2.GenerateKey()
+	if err != nil {
+		return nil, fmt.Errorf("Failed generating GMSM2 key [%s]", err)
+	}
+
+	return &gmsm2PrivateKey{privKey}, nil
+}
+
+// Define GMSM4 keygen struct and implement KeyGenerator interface
+type gmsm4KeyGenerator struct {
+	length int
+}
+
+func (gm *gmsm4KeyGenerator) KeyGen(opts bccsp.KeyGenOpts) (k bccsp.Key, err error) {
+	lowLevelKey, err := GetRandomBytes(int(gm.length))
+	if err != nil {
+		return nil, fmt.Errorf("Failed generating GMSM4 %d key [%s]", gm.length, err)
+	}
+
+	return &gmsm4PrivateKey{lowLevelKey, false}, nil
 }

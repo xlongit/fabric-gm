@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 package handlers
 
 import (
-	"crypto/ecdsa"
+//	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
 	"crypto/x509"
@@ -16,8 +16,10 @@ import (
 
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/pkg/errors"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
+/*
 // revocationSecretKey contains the revocation secret key
 // and implements the bccsp.Key interface
 type revocationSecretKey struct {
@@ -30,7 +32,19 @@ type revocationSecretKey struct {
 func NewRevocationSecretKey(sk *ecdsa.PrivateKey, exportable bool) *revocationSecretKey {
 	return &revocationSecretKey{privKey: sk, exportable: exportable}
 }
+*/
+// revocationSecretKey contains the revocation secret key
+// and implements the bccsp.Key interface
+type revocationSecretKey struct {
+	// sk is the idemix reference to the revocation key
+	privKey *sm2.PrivateKey
+	// exportable if true, sk can be exported via the Bytes function
+	exportable bool
+}
 
+func NewRevocationSecretKey(sk *sm2.PrivateKey, exportable bool) *revocationSecretKey {
+	return &revocationSecretKey{privKey: sk, exportable: exportable}
+}
 // Bytes converts this key to its byte representation,
 // if this operation is allowed.
 func (k *revocationSecretKey) Bytes() ([]byte, error) {
@@ -70,6 +84,7 @@ func (k *revocationSecretKey) PublicKey() (bccsp.Key, error) {
 	return &revocationPublicKey{&k.privKey.PublicKey}, nil
 }
 
+/*
 type revocationPublicKey struct {
 	pubKey *ecdsa.PublicKey
 }
@@ -77,7 +92,14 @@ type revocationPublicKey struct {
 func NewRevocationPublicKey(pubKey *ecdsa.PublicKey) *revocationPublicKey {
 	return &revocationPublicKey{pubKey: pubKey}
 }
+*/
+type revocationPublicKey struct {
+	pubKey *sm2.PublicKey
+}
 
+func NewRevocationPublicKey(pubKey *sm2.PublicKey) *revocationPublicKey {
+	return &revocationPublicKey{pubKey: pubKey}
+}
 // Bytes converts this key to its byte representation,
 // if this operation is allowed.
 func (k *revocationPublicKey) Bytes() (raw []byte, err error) {
@@ -139,7 +161,7 @@ func (g *RevocationKeyGen) KeyGen(opts bccsp.KeyGenOpts) (bccsp.Key, error) {
 // RevocationPublicKeyImporter imports revocation public keys
 type RevocationPublicKeyImporter struct {
 }
-
+/*
 func (i *RevocationPublicKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
 	der, ok := raw.([]byte)
 	if !ok {
@@ -164,6 +186,32 @@ func (i *RevocationPublicKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyI
 	}
 
 	return &revocationPublicKey{ecdsaPublicKey}, nil
+}
+*/
+func (i *RevocationPublicKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
+	der, ok := raw.([]byte)
+	if !ok {
+		return nil, errors.New("invalid raw, expected byte array")
+	}
+
+	if len(der) == 0 {
+		return nil, errors.New("invalid raw, it must not be nil")
+	}
+
+	blockPub, _ := pem.Decode(raw.([]byte))
+	if blockPub == nil {
+		return nil, errors.New("Failed to decode revocation SM2 public key")
+	}
+	revocationPk, err := x509.ParsePKIXPublicKey(blockPub.Bytes)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to parse revocation SM2 public key bytes")
+	}
+	sm2PublicKey, isSM2 := revocationPk.(*sm2.PublicKey)
+	if !isSM2 {
+		return nil, errors.Errorf("key is of type %v, not of type SM2", reflect.TypeOf(revocationPk))
+	}
+
+	return &revocationPublicKey{sm2PublicKey}, nil
 }
 
 type CriSigner struct {

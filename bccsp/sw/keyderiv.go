@@ -153,3 +153,11 @@ func (kd *aesPrivateKeyKeyDeriver) KeyDeriv(k bccsp.Key, opts bccsp.KeyDerivOpts
 		return nil, fmt.Errorf("Unsupported 'KeyDerivOpts' provided [%v]", opts)
 	}
 }
+
+// Add GMSM support
+// Add GM Key driver to implement KeyDeriver interface
+type smPublicKeyKeyDeriver struct{}
+
+func(kd *smPublicKeyKeyDeriver) KeyDeriv(k bccsp.Key, opts bccsp.KeyDerivOpts) (dk bccsp.Key, err error){
+	return nil, errors.New("Not implemented")
+}

@@ -6,6 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 package csp
 
 import (
+	"fmt"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/x509"
@@ -19,6 +20,7 @@ import (
 	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/hyperledger/fabric/bccsp/signer"
 	"github.com/pkg/errors"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 // LoadPrivateKey loads a private key from file in keystorePath
@@ -27,10 +29,23 @@ func LoadPrivateKey(keystorePath string) (bccsp.Key, crypto.Signer, error) {
 	var priv bccsp.Key
 	var s crypto.Signer
 
+	/*
 	opts := &factory.FactoryOpts{
 		ProviderName: "SW",
 		SwOpts: &factory.SwOpts{
 			HashFamily: "SHA2",
+			SecLevel:   256,
+
+			FileKeystore: &factory.FileKeystoreOpts{
+				KeyStorePath: keystorePath,
+			},
+		},
+	}
+	*/
+	opts := &factory.FactoryOpts{
+		ProviderName: "GM",
+		SwOpts: &factory.SwOpts{
+			HashFamily: "GMSM3",
 			SecLevel:   256,
 
 			FileKeystore: &factory.FileKeystoreOpts{
@@ -55,7 +70,8 @@ func LoadPrivateKey(keystorePath string) (bccsp.Key, crypto.Signer, error) {
 			if block == nil {
 				return errors.Errorf("%s: wrong PEM encoding", path)
 			}
-			priv, err = csp.KeyImport(block.Bytes, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
+			//priv, err = csp.KeyImport(block.Bytes, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
+			priv, err = csp.KeyImport(block.Bytes, &bccsp.GMSM2PrivateKeyImportOpts{Temporary: true})
 			if err != nil {
 				return err
 			}
@@ -86,6 +102,7 @@ func GeneratePrivateKey(keystorePath string) (bccsp.Key,
 	var priv bccsp.Key
 	var s crypto.Signer
 
+	/*
 	opts := &factory.FactoryOpts{
 		ProviderName: "SW",
 		SwOpts: &factory.SwOpts{
@@ -97,11 +114,26 @@ func GeneratePrivateKey(keystorePath string) (bccsp.Key,
 			},
 		},
 	}
+	*/
+	opts := &factory.FactoryOpts{
+		ProviderName: "GM",
+		SwOpts: &factory.SwOpts{
+			HashFamily: "GMSM3",
+			SecLevel:   256,
+
+			FileKeystore: &factory.FileKeystoreOpts{
+				KeyStorePath: keystorePath,
+			},
+		},
+	}
 	csp, err := factory.GetBCCSPFromOpts(opts)
 	if err == nil {
 		// generate a key
-		priv, err = csp.KeyGen(&bccsp.ECDSAP256KeyGenOpts{Temporary: false})
+		//priv, err = csp.KeyGen(&bccsp.ECDSAP256KeyGenOpts{Temporary: false})
+		fmt.Println("Begin to gen private key ...")
+		priv, err = csp.KeyGen(&bccsp.GMSM2KeyGenOpts{Temporary: false})
 		if err == nil {
+			fmt.Println("Begin to gen signer ...")
 			// create a crypto.Signer
 			s, err = signer.New(csp, priv)
 		}
@@ -127,4 +159,27 @@ func GetECPublicKey(priv bccsp.Key) (*ecdsa.PublicKey, error) {
 		return nil, err
 	}
 	return ecPubKey.(*ecdsa.PublicKey), nil
+}
+
+// Add GMSM support
+func GetSM2PublicKey(priv bccsp.Key) (*sm2.PublicKey, error) {
+
+	// get the public key
+	pubKey, err := priv.PublicKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// marshal to bytes
+	pubKeyBytes, err := pubKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	// unmarshal using pkix
+	sm2PubKey, err := sm2.ParseSm2PublicKey(pubKeyBytes)
+	//ecPubKey, err := x509.ParsePKIXPublicKey(pubKeyBytes)
+	if err != nil {
+		return nil, err
+	}
+	return sm2PubKey, nil
 }

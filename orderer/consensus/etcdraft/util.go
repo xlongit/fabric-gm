@@ -8,7 +8,7 @@ package etcdraft
 
 import (
 	"bytes"
-	"crypto/x509"
+//	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"sync"
@@ -29,6 +29,8 @@ import (
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/raft"
 	"go.etcd.io/etcd/raft/raftpb"
+
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 // MembershipChanges keeps information about membership
@@ -437,7 +439,8 @@ func validateCert(pemData []byte, certRole string) error {
 		return errors.Errorf("%s TLS certificate is not PEM encoded: %s", certRole, string(pemData))
 	}
 
-	if _, err := x509.ParseCertificate(bl.Bytes); err != nil {
+	//if _, err := x509.ParseCertificate(bl.Bytes); err != nil {
+	if _, err := sm2.ParseCertificate(bl.Bytes); err != nil {
 		return errors.Errorf("%s TLS certificate has invalid ASN1 structure, %v: %s", certRole, err, string(pemData))
 	}
 	return nil

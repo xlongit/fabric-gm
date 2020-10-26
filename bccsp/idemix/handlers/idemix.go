@@ -6,9 +6,10 @@ SPDX-License-Identifier: Apache-2.0
 package handlers
 
 import (
-	"crypto/ecdsa"
+//	"crypto/ecdsa"
 
 	"github.com/hyperledger/fabric/bccsp"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 // IssuerPublicKey is the issuer public key
@@ -94,6 +95,7 @@ type Credential interface {
 	Verify(sk Big, ipk IssuerPublicKey, credential []byte, attributes []bccsp.IdemixAttribute) error
 }
 
+/*
 // Revocation is a local interface to decouple from the idemix implementation
 // the revocation-related operations
 type Revocation interface {
@@ -150,7 +152,63 @@ type SignatureScheme interface {
 	// epoch: revocation epoch.
 	Verify(ipk IssuerPublicKey, signature, msg []byte, attributes []bccsp.IdemixAttribute, rhIndex int, revocationPublicKey *ecdsa.PublicKey, epoch int) error
 }
+*/
+// Revocation is a local interface to decouple from the idemix implementation
+// the revocation-related operations
+type Revocation interface {
 
+	// NewKey generates a long term signing key that will be used for revocation
+	NewKey() (*sm2.PrivateKey, error)
+
+	// Sign creates the Credential Revocation Information for a certain time period (epoch).
+	// Users can use the CRI to prove that they are not revoked.
+	// Note that when not using revocation (i.e., alg = ALG_NO_REVOCATION), the entered unrevokedHandles are not used,
+	// and the resulting CRI can be used by any signer.
+	Sign(key *sm2.PrivateKey, unrevokedHandles [][]byte, epoch int, alg bccsp.RevocationAlgorithm) ([]byte, error)
+
+	// Verify verifies that the revocation PK for a certain epoch is valid,
+	// by checking that it was signed with the long term revocation key.
+	// Note that even if we use no revocation (i.e., alg = ALG_NO_REVOCATION), we need
+	// to verify the signature to make sure the issuer indeed signed that no revocation
+	// is used in this epoch.
+	Verify(pk *sm2.PublicKey, cri []byte, epoch int, alg bccsp.RevocationAlgorithm) error
+}
+
+// SignatureScheme is a local interface to decouple from the idemix implementation
+// the sign-related operations
+type SignatureScheme interface {
+	// Sign creates a new idemix signature (Schnorr-type signature).
+	// The attributes slice steers which attributes are disclosed:
+	// If attributes[i].Type == bccsp.IdemixHiddenAttribute then attribute i remains hidden and otherwise it is disclosed.
+	// We require the revocation handle to remain undisclosed (i.e., attributes[rhIndex] == bccsp.IdemixHiddenAttribute).
+	// Parameters are to be understood as follow:
+	// cred: the serialized version of an idemix credential;
+	// sk: the user secret key;
+	// (Nym, RNym): Nym key-pair;
+	// ipk: issuer public key;
+	// attributes: as described above;
+	// msg: the message to be signed;
+	// rhIndex: revocation handle index relative to attributes;
+	// cri: the serialized version of the Credential Revocation Information (it contains the epoch this signature
+	// is created in reference to).
+	Sign(cred []byte, sk Big, Nym Ecp, RNym Big, ipk IssuerPublicKey, attributes []bccsp.IdemixAttribute,
+		msg []byte, rhIndex int, cri []byte) ([]byte, error)
+
+	// Verify verifies an idemix signature.
+	// The attribute slice steers which attributes it expects to be disclosed
+	// If attributes[i].Type == bccsp.IdemixHiddenAttribute then attribute i remains hidden and otherwise
+	// attributes[i].Value is expected to contain the disclosed attribute value.
+	// In other words, this function will check that if attribute i is disclosed, the i-th attribute equals attributes[i].Value.
+	// Parameters are to be understood as follow:
+	// ipk: issuer public key;
+	// signature: signature to verify;
+	// msg: message signed;
+	// attributes: as described above;
+	// rhIndex: revocation handle index relative to attributes;
+	// revocationPublicKey: revocation public key;
+	// epoch: revocation epoch.
+	Verify(ipk IssuerPublicKey, signature, msg []byte, attributes []bccsp.IdemixAttribute, rhIndex int, revocationPublicKey *sm2.PublicKey, epoch int) error
+}
 // NymSignatureScheme is a local interface to decouple from the idemix implementation
 // the nym sign-related operations
 type NymSignatureScheme interface {

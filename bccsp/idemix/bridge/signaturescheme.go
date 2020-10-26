@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 package bridge
 
 import (
-	"crypto/ecdsa"
+//	"crypto/ecdsa"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-amcl/amcl"
@@ -15,6 +15,7 @@ import (
 	"github.com/hyperledger/fabric/bccsp/idemix/handlers"
 	cryptolib "github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 // SignatureScheme encapsulates the idemix algorithms to sign and verify using an idemix credential.
@@ -90,9 +91,61 @@ func (s *SignatureScheme) Sign(cred []byte, sk handlers.Big, Nym handlers.Ecp, R
 	return proto.Marshal(sig)
 }
 
+/*
 // Verify checks that an idemix signature is valid with the respect to the passed issuer public key, digest, attributes,
 // revocation index (rhIndex), revocation public key, and epoch.
 func (*SignatureScheme) Verify(ipk handlers.IssuerPublicKey, signature, digest []byte, attributes []bccsp.IdemixAttribute, rhIndex int, revocationPublicKey *ecdsa.PublicKey, epoch int) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.Errorf("failure [%s]", r)
+		}
+	}()
+
+	iipk, ok := ipk.(*IssuerPublicKey)
+	if !ok {
+		return errors.Errorf("invalid issuer public key, expected *IssuerPublicKey, got [%T]", ipk)
+	}
+
+	sig := &cryptolib.Signature{}
+	err = proto.Unmarshal(signature, sig)
+	if err != nil {
+		return err
+	}
+
+	disclosure := make([]byte, len(attributes))
+	attrValues := make([]*FP256BN.BIG, len(attributes))
+	for i := 0; i < len(attributes); i++ {
+		switch attributes[i].Type {
+		case bccsp.IdemixHiddenAttribute:
+			disclosure[i] = 0
+			attrValues[i] = nil
+		case bccsp.IdemixBytesAttribute:
+			disclosure[i] = 1
+			attrValues[i] = cryptolib.HashModOrder(attributes[i].Value.([]byte))
+		case bccsp.IdemixIntAttribute:
+			disclosure[i] = 1
+			attrValues[i] = FP256BN.NewBIGint(attributes[i].Value.(int))
+		default:
+			err = errors.Errorf("attribute type not allowed or supported [%v] at position [%d]", attributes[i].Type, i)
+		}
+	}
+	if err != nil {
+		return
+	}
+
+	return sig.Ver(
+		disclosure,
+		iipk.PK,
+		digest,
+		attrValues,
+		rhIndex,
+		revocationPublicKey,
+		epoch)
+}
+*/
+// Verify checks that an idemix signature is valid with the respect to the passed issuer public key, digest, attributes,
+// revocation index (rhIndex), revocation public key, and epoch.
+func (*SignatureScheme) Verify(ipk handlers.IssuerPublicKey, signature, digest []byte, attributes []bccsp.IdemixAttribute, rhIndex int, revocationPublicKey *sm2.PublicKey, epoch int) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.Errorf("failure [%s]", r)
