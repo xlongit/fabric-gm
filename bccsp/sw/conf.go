@@ -34,7 +34,7 @@ type config struct {
 }
 
 func (conf *config) setSecurityLevel(securityLevel int, hashFamily string) (err error) {
-	fmt.Println(fmt.Sprintf("hashFamily is : %v", hashFamily))
+	//fmt.Println(fmt.Sprintf("hashFamily is : %v", hashFamily))
 	switch hashFamily {
 	case "SHA2":
 		err = conf.setSecurityLevelSHA2(securityLevel)

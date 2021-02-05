@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 package ca
 
 import (
-	"fmt"
+	//"fmt"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -59,9 +59,9 @@ func NewCA(baseDir, org, name, country, province, locality, orgUnit, streetAddre
 		if err == nil {
 			// get public signing certificate
 			//ecPubKey, err := csp.GetECPublicKey(priv)
-			fmt.Println("Begin to get SM2 public key ...")
+			//fmt.Println("Begin to get SM2 public key ...")
 			sm2PubKey, err := csp.GetSM2PublicKey(priv)
-			fmt.Println("Get SM2 public key done ...")
+			//fmt.Println("Get SM2 public key done ...")
 			response = err
 			if err == nil {
 				template := x509Template()
@@ -86,12 +86,12 @@ func NewCA(baseDir, org, name, country, province, locality, orgUnit, streetAddre
 				//x509Cert, err := genCertificateECDSA(baseDir, name, &template, &template,
 				//	ecPubKey, signer)
 				// Add GMSM support
-				fmt.Println("Begin  gm.ParseX509Certificate2Sm2 ...")
+				//fmt.Println("Begin  gm.ParseX509Certificate2Sm2 ...")
 				sm2cert := gm.ParseX509Certificate2Sm2(&template)
-				fmt.Println("gm.ParseX509Certificate2Sm2 done...")
+				//fmt.Println("gm.ParseX509Certificate2Sm2 done...")
 				sm2cert.PublicKey = sm2PubKey
 				x509Cert, err := genCertificateGMSM2(baseDir, name, sm2cert, sm2cert, sm2PubKey, priv)
-				fmt.Println("genCertificateGMSM2 done...")
+				//fmt.Println("genCertificateGMSM2 done...")
 
 				response = err
 				if err == nil {
@@ -271,7 +271,7 @@ func LoadCertificateECDSA(certPath string) (*x509.Certificate, error) {
 //generate a signed X509 certficate using GMSM2
 func genCertificateGMSM2(baseDir, name string, template, parent *sm2.Certificate, pub *sm2.PublicKey,
 	key bccsp.Key) (*sm2.Certificate, error) {
-	fmt.Println("sm2.PublicKey is : ", template.PublicKey.(*sm2.PublicKey))
+	//fmt.Println("sm2.PublicKey is : ", template.PublicKey.(*sm2.PublicKey))
 	//create the x509 public cert
 	certBytes, err := gm.CreateCertificateToMem(template, parent, key)
 

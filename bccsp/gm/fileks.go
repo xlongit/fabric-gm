@@ -159,7 +159,7 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (k bccsp.Key, err error) {
 // StoreKey stores the key k in this KeyStore.
 // If this KeyStore is read only then the method will fail.
 func (ks *fileBasedKeyStore) StoreKey(k bccsp.Key) (err error) {
-	fmt.Println("Begin to store GM key in fileks.go ...")
+	//fmt.Println("Begin to store GM key in fileks.go ...")
 	if ks.readOnly {
 		return errors.New("Read only KeyStore")
 	}

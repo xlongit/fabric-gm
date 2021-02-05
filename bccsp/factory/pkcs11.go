@@ -109,7 +109,7 @@ func setFactories(config *FactoryOpts) error {
 // GetBCCSPFromOpts returns a BCCSP created according to the options passed in input.
 func GetBCCSPFromOpts(config *FactoryOpts) (bccsp.BCCSP, error) {
 	var f BCCSPFactory
-	fmt.Println(fmt.Sprintf("The ProviderName is %s", config.ProviderName))
+	//fmt.Println(fmt.Sprintf("The ProviderName is %s", config.ProviderName))
 	switch config.ProviderName {
 	case "SW":
 		f = &SWFactory{}

@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 package csp
 
 import (
-	"fmt"
+	//"fmt"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/x509"
@@ -130,10 +130,10 @@ func GeneratePrivateKey(keystorePath string) (bccsp.Key,
 	if err == nil {
 		// generate a key
 		//priv, err = csp.KeyGen(&bccsp.ECDSAP256KeyGenOpts{Temporary: false})
-		fmt.Println("Begin to gen private key ...")
+		//fmt.Println("Begin to gen private key ...")
 		priv, err = csp.KeyGen(&bccsp.GMSM2KeyGenOpts{Temporary: false})
 		if err == nil {
-			fmt.Println("Begin to gen signer ...")
+			//fmt.Println("Begin to gen signer ...")
 			// create a crypto.Signer
 			s, err = signer.New(csp, priv)
 		}

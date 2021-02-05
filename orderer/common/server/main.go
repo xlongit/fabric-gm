@@ -84,10 +84,17 @@ func Main() {
 		logger.Error("failed to parse config: ", err)
 		os.Exit(1)
 	}
+
 	initializeLogging()
 	initializeLocalMsp(conf)
 
+	// Force the hash family to GMSM3
+	conf.General.BCCSP.ProviderName = "GM"
+	conf.General.BCCSP.SwOpts.HashFamily = "GMSM3"
 	prettyPrintStruct(conf)
+	conf.General.BCCSP.ProviderName = "SW"
+	conf.General.BCCSP.SwOpts.HashFamily = "SHA2"
+
 	Start(fullCmd, conf)
 }
 
